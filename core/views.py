@@ -585,6 +585,7 @@ def api_pedidos_activos(request):
     return JsonResponse({'success': True, 'pedidos': data})
 
 # Vista para aceptar un pedido
+@require_POST
 @login_required
 def aceptar_pedido(request, pedido_id):
     """Vista para que un repartidor acepte un pedido"""
@@ -715,9 +716,14 @@ def panel_farmacia(request):
         'pedidos_nuevos': pedidos_nuevos,
         'pedidos_preparando': pedidos_preparando,
         'pedidos_listos': pedidos_listos,
+        'productos': productos,
         'productos_sin_stock': productos_sin_stock,
         'productos_poco_stock': productos_poco_stock,
         'productos_disponibles': productos_disponibles,
+        'descuentos': DescuentoObraSocial.objects.filter(
+            producto__farmacia=farmacia,
+            activo=True
+        ).order_by('producto__nombre', 'obra_social__nombre'),
         'total_productos': productos.count(),
         'active_tab': active_tab,
     }

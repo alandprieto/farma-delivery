@@ -130,13 +130,8 @@ LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
 # Configuración de Email
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # Para desarrollo
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # Para producción
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'tu-email@gmail.com'  # Cambiar por tu email
-EMAIL_HOST_PASSWORD = 'tu-password'  # Cambiar por tu password
+# En desarrollo los correos se muestran por consola.
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 DEFAULT_FROM_EMAIL = 'FarmaDelivery <noreply@farmadelivery.com>'
 
 # Configuración de archivos estáticos y media
