@@ -1,0 +1,153 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración de Cuenta - FarmaDelivery</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- CSS Personalizado -->
+    <link rel="stylesheet" href="{% static 'css/farmacia.css' %}">
+</head>
+<body>
+<div class="farmacia-container">
+    <!-- Header del Panel -->
+    <div class="farmacia-header">
+        <div class="header-content">
+            <div class="farmacia-info">
+                <h1 class="farmacia-title">
+                    <i class="fas fa-user-cog"></i>
+                    Configuración de Cuenta
+                </h1>
+                <p class="farmacia-subtitle">{{ farmacia.nombre }} - Matrícula: {{ farmacia.matricula }}</p>
+            </div>
+            <div class="header-actions">
+                <a href="{% url 'panel_farmacia' %}" class="btn btn-outline-light btn-sm logout-btn">
+                    <i class="fas fa-arrow-left"></i>
+                    Volver al Panel
+                </a>
+                <div class="logout-section">
+                    <form method="post" action="{% url 'logout' %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger btn-sm logout-btn">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Cerrar Sesión
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="container mt-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Contenido -->
+    <div class="farmacia-content">
+        <div class="cuenta-container">
+            <div class="cuenta-header">
+                <h2>Configuración de Cuenta</h2>
+                <p>Gestiona los datos de tu farmacia</p>
+            </div>
+
+            <div class="cuenta-content">
+                <form class="cuenta-form" method="post" action="{% url 'configuracion_cuenta_farmacia' %}">
+                    {% csrf_token %}
+                    <div class="form-section">
+                        <h3>Información de la Farmacia</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="nombre">Nombre de la Farmacia</label>
+                                <input type="text" id="nombre" name="nombre" value="{{ farmacia.nombre }}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="matricula">Matrícula</label>
+                                <input type="text" id="matricula" name="matricula" value="{{ farmacia.matricula }}" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="cuit">CUIT</label>
+                                <input type="text" id="cuit" name="cuit" value="{{ farmacia.cuit }}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="telefono">Teléfono</label>
+                                <input type="text" id="telefono" name="telefono" value="{{ farmacia.telefono }}" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="email_contacto">Email de Contacto</label>
+                            <input type="email" id="email_contacto" name="email_contacto" value="{{ farmacia.email_contacto }}" required>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Dirección</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="calle">Calle</label>
+                                <input type="text" id="calle" name="calle" value="{{ farmacia.direccion.calle }}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="numero">Número</label>
+                                <input type="text" id="numero" name="numero" value="{{ farmacia.direccion.numero }}" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="ciudad">Ciudad</label>
+                                <input type="text" id="ciudad" name="ciudad" value="{{ farmacia.direccion.ciudad }}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="provincia">Provincia</label>
+                                <input type="text" id="provincia" name="provincia" value="{{ farmacia.direccion.provincia }}" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="codigo_postal">Código Postal</label>
+                            <input type="text" id="codigo_postal" name="codigo_postal" value="{{ farmacia.direccion.codigo_postal }}" required>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Horarios</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="horario_apertura">Horario de Apertura</label>
+                                <input type="time" id="horario_apertura" name="horario_apertura" value="{{ farmacia.horario_apertura|date:'H:i' }}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="horario_cierre">Horario de Cierre</label>
+                                <input type="time" id="horario_cierre" name="horario_cierre" value="{{ farmacia.horario_cierre|date:'H:i' }}" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i>
+                            Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

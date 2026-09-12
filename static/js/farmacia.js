@@ -1,5 +1,16 @@
 /* ===== JAVASCRIPT PARA PANEL FARMACÉUTICO ===== */
 
+// Escapa texto de origen servidor antes de insertarlo en innerHTML
+function escapeHtml(value) {
+    if (value === null || value === undefined) return '';
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Inicializar funcionalidades
     initTabs();
@@ -477,21 +488,21 @@ function showRecetaModal(recetaUrl) {
     
     if (extension === 'pdf') {
         contenido = `
-            <iframe src="${recetaUrl}" class="receta-pdf" frameborder="0">
+            <iframe src="${escapeHtml(recetaUrl)}" class="receta-pdf" frameborder="0">
                 <p>Tu navegador no soporta la visualización de PDFs. 
-                <a href="${recetaUrl}" target="_blank">Haz clic aquí para descargar el archivo</a></p>
+                <a href="${escapeHtml(recetaUrl)}" target="_blank">Haz clic aquí para descargar el archivo</a></p>
             </iframe>
         `;
     } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension)) {
         contenido = `
-            <img src="${recetaUrl}" alt="Receta médica" class="receta-imagen">
+            <img src="${escapeHtml(recetaUrl)}" alt="Receta médica" class="receta-imagen">
         `;
     } else {
         contenido = `
             <div class="text-center p-4">
                 <i class="fas fa-file fa-3x text-gray-400 mb-3"></i>
                 <p class="text-gray-600">Tipo de archivo no soportado para visualización</p>
-                <a href="${recetaUrl}" target="_blank" class="btn btn-primary">
+                <a href="${escapeHtml(recetaUrl)}" target="_blank" class="btn btn-primary">
                     <i class="fas fa-download"></i>
                     Descargar Archivo
                 </a>
@@ -522,12 +533,12 @@ function showToast(type, title, message) {
     
     toast.innerHTML = `
         <div class="toast-header">
-            <div class="toast-title">${title}</div>
+            <div class="toast-title">${escapeHtml(title)}</div>
             <button class="toast-close" onclick="this.parentElement.parentElement.remove()">
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <div class="toast-body">${message}</div>
+        <div class="toast-body">${escapeHtml(message)}</div>
     `;
     
     toastContainer.appendChild(toast);

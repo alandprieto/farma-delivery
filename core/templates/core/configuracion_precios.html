@@ -1,0 +1,195 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración de Precios - FarmaDelivery</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- CSS Personalizado -->
+    <link rel="stylesheet" href="{% static 'css/farmacia.css' %}">
+</head>
+<body>
+<div class="farmacia-container">
+    <!-- Header del Panel -->
+    <div class="farmacia-header">
+        <div class="header-content">
+            <div class="farmacia-info">
+                <h1 class="farmacia-title">
+                    <i class="fas fa-tags"></i>
+                    Configuración de Precios
+                </h1>
+                <p class="farmacia-subtitle">{{ farmacia.nombre }} - Matrícula: {{ farmacia.matricula }}</p>
+            </div>
+            <div class="header-actions">
+                <a href="{% url 'panel_farmacia' %}" class="btn btn-outline-light btn-sm logout-btn">
+                    <i class="fas fa-arrow-left"></i>
+                    Volver al Panel
+                </a>
+                <div class="logout-section">
+                    <form method="post" action="{% url 'logout' %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger btn-sm logout-btn">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Cerrar Sesión
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="container mt-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Contenido -->
+    <div class="farmacia-content">
+        <div class="precios-container">
+            <div class="precios-header">
+                <h2>Descuentos por Obra Social</h2>
+                <p>Gestiona los descuentos por obra social para tus productos</p>
+            </div>
+
+            <div class="precios-content">
+                <div class="precios-sidebar">
+                    <h3>Productos</h3>
+                    <div class="productos-list">
+                        {% for producto in productos %}
+                        <div class="producto-item" data-producto-id="{{ producto.id }}">
+                            <h4>{{ producto.nombre }}</h4>
+                            <p class="precio-base">Precio base: ${{ producto.precio_base }}</p>
+                        </div>
+                        {% empty %}
+                        <div class="empty-state">
+                            <i class="fas fa-boxes"></i>
+                            <p>No hay productos activos</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="precios-main">
+                    <!-- Formulario de alta/edición -->
+                    <h3>
+                        {% if descuento_a_editar %}
+                        Editar Descuento
+                        {% else %}
+                        Agregar Descuento
+                        {% endif %}
+                    </h3>
+                    <form method="post" action="{% url 'configuracion_precios' %}">
+                        {% csrf_token %}
+                        {% if descuento_a_editar %}
+                        <input type="hidden" name="descuento_id" value="{{ descuento_a_editar.id }}">
+                        {% endif %}
+
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                            <div>{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <div class="form-group">
+                            <label for="{{ form.producto.id_for_label }}">{{ form.producto.label }}</label>
+                            {{ form.producto }}
+                            {{ form.producto.errors }}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.obra_social.id_for_label }}">{{ form.obra_social.label }}</label>
+                            {{ form.obra_social }}
+                            {{ form.obra_social.errors }}
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="{{ form.descuento_porcentaje.id_for_label }}">{{ form.descuento_porcentaje.label }}</label>
+                                {{ form.descuento_porcentaje }}
+                                {{ form.descuento_porcentaje.errors }}
+                            </div>
+                            <div class="form-group">
+                                <label for="{{ form.descuento_fijo.id_for_label }}">{{ form.descuento_fijo.label }}</label>
+                                {{ form.descuento_fijo }}
+                                {{ form.descuento_fijo.errors }}
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i>
+                                {% if descuento_a_editar %}Guardar Cambios{% else %}Agregar Descuento{% endif %}
+                            </button>
+                            {% if descuento_a_editar %}
+                            <a href="{% url 'configuracion_precios' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i>
+                                Cancelar
+                            </a>
+                            {% endif %}
+                        </div>
+                    </form>
+
+                    <h3>Descuentos Vigentes</h3>
+                    <div class="descuentos-table">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Obra Social</th>
+                                    <th>Descuento %</th>
+                                    <th>Descuento Fijo</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for descuento in descuentos %}
+                                <tr>
+                                    <td>{{ descuento.producto.nombre }}</td>
+                                    <td>{{ descuento.obra_social.nombre }}</td>
+                                    <td>{{ descuento.descuento_porcentaje }}%</td>
+                                    <td>${{ descuento.descuento_fijo }}</td>
+                                    <td>
+                                        <a href="{% url 'configuracion_precios' %}?descuento_id={{ descuento.id }}"
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form method="post" action="{% url 'configuracion_precios' %}" style="display: inline;">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="accion" value="eliminar">
+                                            <input type="hidden" name="descuento_id" value="{{ descuento.id }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                    onclick="return confirm('¿Eliminar este descuento?');">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center">No hay descuentos configurados</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

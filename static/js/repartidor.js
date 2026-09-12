@@ -5,6 +5,17 @@ let pedidosDisponibles = [];
 let pedidosActivos = [];
 let pedidoActivoActual = null;
 
+// Escapa texto de origen servidor antes de insertarlo en innerHTML
+function escapeHtml(value) {
+    if (value === null || value === undefined) return '';
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // Inicialización cuando el DOM está listo
 document.addEventListener('DOMContentLoaded', function() {
     // Inicializar componentes
@@ -98,18 +109,18 @@ function renderPedidosDisponibles() {
                 <div class="pedido-numero">Pedido #${pedido.numero}</div>
                 <div class="pedido-farmacia">
                     <i class="fas fa-store"></i>
-                    ${pedido.farmacia}
+                    ${escapeHtml(pedido.farmacia)}
                 </div>
             </div>
             <div class="pedido-card-body">
                 <div class="pedido-info">
                     <div class="info-item">
                         <div class="info-label">Ganancia</div>
-                        <div class="info-value ganancia">$${pedido.ganancia}</div>
+                        <div class="info-value ganancia">$${escapeHtml(pedido.ganancia)}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">Distancia</div>
-                        <div class="info-value distancia">${pedido.distancia}</div>
+                        <div class="info-value distancia">${escapeHtml(pedido.distancia)}</div>
                     </div>
                 </div>
                 <div class="pedido-direccion">
@@ -117,7 +128,7 @@ function renderPedidosDisponibles() {
                         <i class="fas fa-map-marker-alt"></i>
                         Dirección de la Farmacia
                     </div>
-                    <div class="direccion-text">${pedido.direccion_farmacia}</div>
+                    <div class="direccion-text">${escapeHtml(pedido.direccion_farmacia)}</div>
                 </div>
                 <div class="pedido-actions">
                     <button class="btn-aceptar" onclick="event.stopPropagation(); aceptarPedido(${pedido.id})">
@@ -178,7 +189,7 @@ function renderPedidosActivos() {
             <div class="pedido-activo-header">
                 <div class="pedido-activo-info">
                     <div class="pedido-activo-numero">Pedido #${pedido.numero}</div>
-                    <div class="pedido-activo-estado">${getEstadoText(pedido.estado)}</div>
+                    <div class="pedido-activo-estado">${escapeHtml(getEstadoText(pedido.estado))}</div>
                 </div>
             </div>
             <div class="pedido-activo-body">
@@ -189,8 +200,8 @@ function renderPedidosActivos() {
                             Recolectar en
                         </div>
                         <div class="direccion-details">
-                            <strong>${pedido.farmacia}</strong><br>
-                            ${pedido.direccion_farmacia}
+                            <strong>${escapeHtml(pedido.farmacia)}</strong><br>
+                            ${escapeHtml(pedido.direccion_farmacia)}
                         </div>
                     </div>
                     <div class="direccion-section entrega">
@@ -199,8 +210,8 @@ function renderPedidosActivos() {
                             Entregar a
                         </div>
                         <div class="direccion-details">
-                            <strong>${pedido.cliente}</strong><br>
-                            ${pedido.direccion_cliente}
+                            <strong>${escapeHtml(pedido.cliente)}</strong><br>
+                            ${escapeHtml(pedido.direccion_cliente)}
                         </div>
                     </div>
                 </div>
@@ -211,9 +222,9 @@ function renderPedidosActivos() {
                         Información de Pago
                     </div>
                     <div class="pago-details">
-                        <div class="pago-metodo">${getMetodoPagoText(pedido.metodo_pago)}</div>
+                        <div class="pago-metodo">${escapeHtml(getMetodoPagoText(pedido.metodo_pago))}</div>
                         <div class="pago-monto ${pedido.metodo_pago === 'EFECTIVO' ? 'efectivo' : 'pagado'}">
-                            ${pedido.metodo_pago === 'EFECTIVO' ? `$${pedido.monto_cobrar}` : 'Pagado'}
+                            ${pedido.metodo_pago === 'EFECTIVO' ? `$${escapeHtml(pedido.monto_cobrar)}` : 'Pagado'}
                         </div>
                     </div>
                 </div>
@@ -242,37 +253,37 @@ function mostrarDetallePedido(pedidoId) {
         <div class="pedido-detalle">
             <div class="detalle-header">
                 <h4>Pedido #${pedido.numero}</h4>
-                <p class="text-muted">${pedido.farmacia}</p>
+                <p class="text-muted">${escapeHtml(pedido.farmacia)}</p>
             </div>
             
             <div class="detalle-info">
                 <div class="row mb-3">
                     <div class="col-6">
-                        <strong>Ganancia:</strong> $${pedido.ganancia}
+                        <strong>Ganancia:</strong> $${escapeHtml(pedido.ganancia)}
                     </div>
                     <div class="col-6">
-                        <strong>Distancia:</strong> ${pedido.distancia}
+                        <strong>Distancia:</strong> ${escapeHtml(pedido.distancia)}
                     </div>
                 </div>
                 
                 <div class="mb-3">
-                    <strong>Cliente:</strong> ${pedido.cliente}
+                    <strong>Cliente:</strong> ${escapeHtml(pedido.cliente)}
                 </div>
                 
                 <div class="mb-3">
                     <strong>Dirección de Entrega:</strong><br>
-                    ${pedido.direccion_cliente}
+                    ${escapeHtml(pedido.direccion_cliente)}
                 </div>
                 
                 <div class="mb-3">
                     <strong>Productos:</strong>
                     <ul class="list-unstyled mt-2">
-                        ${pedido.productos.map(producto => `<li><i class="fas fa-pills"></i> ${producto}</li>`).join('')}
+                        ${pedido.productos.map(producto => `<li><i class="fas fa-pills"></i> ${escapeHtml(producto)}</li>`).join('')}
                     </ul>
                 </div>
                 
                 <div class="mb-3">
-                    <strong>Total del Pedido:</strong> $${pedido.total}
+                    <strong>Total del Pedido:</strong> $${escapeHtml(pedido.total)}
                 </div>
             </div>
             
@@ -469,9 +480,9 @@ function showToast(type, title, message) {
     toast.innerHTML = `
         <div class="toast-header">
             <i class="toast-icon ${type} ${iconClass}"></i>
-            <span class="toast-title">${title}</span>
+            <span class="toast-title">${escapeHtml(title)}</span>
         </div>
-        <div class="toast-message">${message}</div>
+        <div class="toast-message">${escapeHtml(message)}</div>
     `;
     
     container.appendChild(toast);

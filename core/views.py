@@ -10,7 +10,7 @@ from django.http import JsonResponse
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.core.paginator import Paginator
 from django.views.decorators.http import require_POST
 
@@ -23,7 +23,8 @@ from .models import (
 from .forms import (
     BusquedaProductoForm, RecetaForm, ConfirmacionPedidoForm,
     DireccionForm, PerfilClienteForm, ContactoForm,
-    ClienteSignUpForm, FarmaciaSignUpForm, RepartidorSignUpForm
+    ClienteSignUpForm, FarmaciaSignUpForm, RepartidorSignUpForm,
+    DescuentoObraSocialForm
 )
 from .utils import obtener_coordenadas
 
@@ -756,7 +757,8 @@ def detalle_pedido_farmacia(request, pedido_id):
         # Si es una petición AJAX, devolver solo el contenido del modal
         return render(request, 'core/modal_detalle_pedido.html', context)
     
-    return render(request, 'core/detalle_pedido_farmacia.html', context)
+    # El detalle se muestra siempre por modal desde el panel
+    return redirect('panel_farmacia')
 
 # Vista para confirmar receta y preparar pedido
 @login_required
@@ -897,32 +899,6 @@ def entregar_pedido_repartidor(request, pedido_id):
     enviar_email_cambio_estado(pedido, EstadoPedido.EN_CAMINO)
     return JsonResponse({'success': True, 'mensaje': 'Pedido marcado como entregado.'})
 
-# Vista para gestionar inventario
-@login_required
-def inventario_farmacia(request):
-    """Vista para gestión de inventario de la farmacia"""
-    try:
-        farmacia = Farmacia.objects.get(user=request.user)
-    except Farmacia.DoesNotExist:
-        messages.error(request, 'No tienes permisos de farmacia.')
-        return redirect('home')
-    
-    productos = Producto.objects.filter(farmacia=farmacia, activo=True).order_by('nombre')
-    
-    # Clasificar productos por estado de stock
-    productos_sin_stock = productos.filter(stock_disponible=0)
-    productos_poco_stock = productos.filter(stock_disponible__gt=0, stock_disponible__lte=5)
-    productos_disponibles = productos.filter(stock_disponible__gt=5)
-    
-    context = {
-        'farmacia': farmacia,
-        'productos_sin_stock': productos_sin_stock,
-        'productos_poco_stock': productos_poco_stock,
-        'productos_disponibles': productos_disponibles,
-        'total_productos': productos.count(),
-    }
-    return render(request, 'core/inventario_farmacia.html', context)
-
 # Vista para actualizar stock de producto
 @login_required
 def actualizar_stock(request, producto_id):
@@ -962,21 +938,52 @@ def configuracion_precios(request):
     except Farmacia.DoesNotExist:
         messages.error(request, 'No tienes permisos de farmacia.')
         return redirect('home')
-    
-    productos = Producto.objects.filter(farmacia=farmacia, activo=True).order_by('nombre')
-    obras_sociales = ObraSocial.objects.all().order_by('nombre')
-    
-    # Obtener descuentos existentes
-    descuentos = DescuentoObraSocial.objects.filter(
-        producto__farmacia=farmacia,
-        activo=True
-    ).select_related('producto', 'obra_social')
-    
+
+    # Eliminar (baja lógica) un descuento
+    if request.method == 'POST' and request.POST.get('accion') == 'eliminar':
+        descuento = get_object_or_404(DescuentoObraSocial, id=request.POST.get('descuento_id'), producto__farmacia=farmacia)
+        descuento.activo = False
+        descuento.save()
+        messages.success(request, 'Descuento eliminado correctamente.')
+        return redirect('configuracion_precios')
+
+    # Prellenar el formulario para edición si se indica un descuento
+    descuento_a_editar = None
+    descuento_id = request.POST.get('descuento_id') or request.GET.get('descuento_id')
+    if descuento_id:
+        descuento_a_editar = DescuentoObraSocial.objects.filter(
+            id=descuento_id,
+            producto__farmacia=farmacia,
+        ).first()
+
+    if request.method == 'POST':
+        form = DescuentoObraSocialForm(request.POST, instance=descuento_a_editar, farmacia=farmacia)
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    descuento = form.save(commit=False)
+                    descuento.activo = True
+                    descuento.descuento_porcentaje = descuento.descuento_porcentaje or 0
+                    descuento.descuento_fijo = descuento.descuento_fijo or 0
+                    descuento.save()
+            except IntegrityError:
+                messages.error(request, 'Ya existe un descuento para esa combinación de producto y obra social.')
+            else:
+                messages.success(request, 'Descuento guardado correctamente.')
+                return redirect('configuracion_precios')
+    else:
+        form = DescuentoObraSocialForm(instance=descuento_a_editar, farmacia=farmacia)
+
     context = {
         'farmacia': farmacia,
-        'productos': productos,
-        'obras_sociales': obras_sociales,
-        'descuentos': descuentos,
+        'productos': Producto.objects.filter(farmacia=farmacia, activo=True).order_by('nombre'),
+        'obras_sociales': ObraSocial.objects.all().order_by('nombre'),
+        'descuentos': DescuentoObraSocial.objects.filter(
+            producto__farmacia=farmacia,
+            activo=True
+        ).select_related('producto', 'obra_social'),
+        'form': form,
+        'descuento_a_editar': descuento_a_editar,
     }
     return render(request, 'core/configuracion_precios.html', context)
 
