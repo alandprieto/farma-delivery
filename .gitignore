@@ -24,3 +24,6 @@ media/
 # Sistema
 .DS_Store
 Thumbs.db
+
+# Agentes
+.agents
