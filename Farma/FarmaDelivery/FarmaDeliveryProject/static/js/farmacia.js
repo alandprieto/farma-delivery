@@ -313,7 +313,6 @@ function initInventario() {
 
 function loadInventario() {
     // Esta función se puede usar para cargar datos del inventario dinámicamente
-    console.log('Cargando inventario...');
 }
 
 function actualizarStock(productoId, nuevoStock) {
@@ -402,7 +401,6 @@ function checkEmptyStatesInventario() {
 
 function loadPrecios() {
     // Esta función se puede usar para cargar datos de precios dinámicamente
-    console.log('Cargando precios...');
 }
 
 /* ===== FUNCIONALIDAD DE MODAL ===== */

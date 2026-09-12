@@ -181,7 +181,6 @@ class DireccionForm(forms.ModelForm):
 
     class Meta:
         model = Direccion
-        # Asegúrate de que 'entre_calles' no esté aquí si no existe en el modelo
         fields = ['calle', 'numero', 'ciudad', 'provincia', 'codigo_postal']
         widgets = {
             'calle': forms.TextInput(attrs={
@@ -498,7 +497,7 @@ class ProductoForm(forms.ModelForm):
         model = Producto
         fields = [
             'nombre', 'descripcion', 'precio_base', 'codigo_barras',
-            'categoria', 'laboratorio', 'requiere_receta', 'stock_disponible', 'imagen' # <-- AÑADIDO 'imagen'
+            'categoria', 'laboratorio', 'requiere_receta', 'stock_disponible', 'imagen'
         ]
         widgets = {
             'nombre': forms.TextInput(attrs={
@@ -545,7 +544,6 @@ class ProductoForm(forms.ModelForm):
                 'placeholder': '0',
                 'id': 'producto-stock'
             }),
-             # Widget para el campo de imagen
             'imagen': forms.ClearableFileInput(attrs={
                 'class': 'form-control',
                 'id': 'producto-imagen'
@@ -556,7 +554,7 @@ class ProductoForm(forms.ModelForm):
             'codigo_barras': 'Código de Barras',
             'requiere_receta': 'Requiere Receta Médica',
             'stock_disponible': 'Stock Disponible',
-            'imagen': 'Imagen del Producto' # <-- AÑADIDO label
+            'imagen': 'Imagen del Producto'
         }
 
     def __init__(self, *args, **kwargs):
@@ -578,47 +576,23 @@ class ProductoForm(forms.ModelForm):
             raise forms.ValidationError('El stock no puede ser negativo.')
         return stock
 
-# --- TUS FORMULARIOS DE REGISTRO (ARREGLADOS) ---
-
-class ClienteSignUpForm(UserCreationForm):
-    dni = forms.CharField(max_length=8, required=True, label="DNI")
-    first_name = forms.CharField(max_length=150, required=True, label="Nombre")
-    last_name = forms.CharField(max_length=150, required=True, label="Apellido")
-
-    # Adaptado para usar el modelo ObraSocial
-    obra_social = forms.ModelChoiceField(
-        queryset=ObraSocial.objects.all(),
-        required=False,
-        empty_label="No tengo / No informar",
-        label="Obra Social"
-    )
-    numero_afiliado = forms.CharField(max_length=50, required=False, label="N° Afiliado (Opcional)")
-
-    # Campos adaptados para el modelo Direccion
-    calle = forms.CharField(max_length=100, required=True)
-    numero = forms.CharField(max_length=10, required=True)
-    # ELIMINADO: entre_calles = forms.CharField(max_length=255, required=False)
-    ciudad = forms.CharField(max_length=50, required=True, initial="Buenos Aires")
-    provincia = forms.CharField(max_length=50, required=True, initial="Buenos Aires")
-    codigo_postal = forms.CharField(max_length=10, required=True)
-
-    class Meta(UserCreationForm.Meta):
-        model = User
-        fields = ('first_name', 'last_name', 'email')
+class BaseSignUpForm(UserCreationForm):
+    """Base común para los formularios de registro (usa el DNI como username)."""
+    texto_inputs_bootstrap = []
+    selects_bootstrap = []
+    archivos_bootstrap = []
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Aplicar clases Bootstrap consistentes
-        bootstrap_text_inputs = [
-            'dni', 'first_name', 'last_name', 'email', 'calle', 'numero',
-            'ciudad', 'provincia', 'codigo_postal', 'numero_afiliado'
-        ]
-        for name in bootstrap_text_inputs:
+        for name in self.texto_inputs_bootstrap:
             if name in self.fields:
                 self.fields[name].widget.attrs.setdefault('class', 'form-control')
-        if 'obra_social' in self.fields:
-            self.fields['obra_social'].widget.attrs.setdefault('class', 'form-select')
-        # Passwords
+        for name in self.selects_bootstrap:
+            if name in self.fields:
+                self.fields[name].widget.attrs.setdefault('class', 'form-select')
+        for name in self.archivos_bootstrap:
+            if name in self.fields:
+                self.fields[name].widget.attrs.setdefault('class', 'form-control')
         for name in ['password1', 'password2']:
             if name in self.fields:
                 self.fields[name].widget.attrs.setdefault('class', 'form-control')
@@ -631,6 +605,43 @@ class ClienteSignUpForm(UserCreationForm):
                 '<li>Tu contraseña no puede ser completamente numérica.</li>'
                 '</ul>'
             )
+
+    def crear_direccion(self):
+        return Direccion.objects.create(
+            calle=self.cleaned_data.get('calle'),
+            numero=self.cleaned_data.get('numero'),
+            ciudad=self.cleaned_data.get('ciudad'),
+            provincia=self.cleaned_data.get('provincia'),
+            codigo_postal=self.cleaned_data.get('codigo_postal'),
+        )
+
+
+class ClienteSignUpForm(BaseSignUpForm):
+    dni = forms.CharField(max_length=8, required=True, label="DNI")
+    first_name = forms.CharField(max_length=150, required=True, label="Nombre")
+    last_name = forms.CharField(max_length=150, required=True, label="Apellido")
+    obra_social = forms.ModelChoiceField(
+        queryset=ObraSocial.objects.all(),
+        required=False,
+        empty_label="No tengo / No informar",
+        label="Obra Social"
+    )
+    numero_afiliado = forms.CharField(max_length=50, required=False, label="N° Afiliado (Opcional)")
+    calle = forms.CharField(max_length=100, required=True)
+    numero = forms.CharField(max_length=10, required=True)
+    ciudad = forms.CharField(max_length=50, required=True, initial="Buenos Aires")
+    provincia = forms.CharField(max_length=50, required=True, initial="Buenos Aires")
+    codigo_postal = forms.CharField(max_length=10, required=True)
+
+    texto_inputs_bootstrap = [
+        'dni', 'first_name', 'last_name', 'email', 'calle', 'numero',
+        'ciudad', 'provincia', 'codigo_postal', 'numero_afiliado'
+    ]
+    selects_bootstrap = ['obra_social']
+
+    class Meta(UserCreationForm.Meta):
+        model = User
+        fields = ('first_name', 'last_name', 'email')
 
     def clean_dni(self):
         dni = self.cleaned_data.get('dni')
@@ -643,100 +654,62 @@ class ClienteSignUpForm(UserCreationForm):
     @transaction.atomic
     def save(self, commit=True):
         user = super().save(commit=False)
-        user.username = self.cleaned_data['dni'] # Usamos DNI como username
+        user.username = self.cleaned_data['dni']
         if commit:
             user.save()
-            # Guardamos el modelo Direccion SIN entre_calles
-            direccion = Direccion.objects.create(
-                calle=self.cleaned_data.get('calle'),
-                numero=self.cleaned_data.get('numero'),
-                # ELIMINADO: entre_calles=self.cleaned_data.get('entre_calles'),
-                ciudad=self.cleaned_data.get('ciudad'),
-                provincia=self.cleaned_data.get('provincia'),
-                codigo_postal=self.cleaned_data.get('codigo_postal'),
-            )
-            # Creamos el Cliente
+            direccion = self.crear_direccion()
             Cliente.objects.create(
                 user=user,
                 dni=self.cleaned_data.get('dni'),
                 obra_social=self.cleaned_data.get('obra_social'),
                 numero_afiliado=self.cleaned_data.get('numero_afiliado'),
-                direccion=direccion # Asignamos la Direccion
+                direccion=direccion,
             )
         return user
 
-class FarmaciaSignUpForm(UserCreationForm):
+class FarmaciaSignUpForm(BaseSignUpForm):
     dni = forms.CharField(max_length=8, required=True, label="DNI del Responsable")
     nombre_farmacia = forms.CharField(max_length=150, required=True, label="Nombre de la Farmacia")
     cuit = forms.CharField(max_length=13, required=True, label="CUIT")
     matricula = forms.CharField(max_length=50, required=True, label="Matrícula")
     telefono = forms.CharField(max_length=20, required=True)
     email_contacto = forms.EmailField(required=True, label="Email de Contacto")
-
-    # Campos adaptados para el modelo Direccion
     calle = forms.CharField(max_length=100, required=True)
     numero = forms.CharField(max_length=10, required=True)
-    # ELIMINADO: entre_calles = forms.CharField(max_length=255, required=False)
     ciudad = forms.CharField(max_length=50, required=True, initial="Buenos Aires")
     provincia = forms.CharField(max_length=50, required=True, initial="Buenos Aires")
     codigo_postal = forms.CharField(max_length=10, required=True)
 
+    texto_inputs_bootstrap = [
+        'dni', 'nombre_farmacia', 'cuit', 'matricula', 'telefono',
+        'email_contacto', 'calle', 'numero', 'ciudad', 'provincia',
+        'codigo_postal', 'email'
+    ]
+
     class Meta(UserCreationForm.Meta):
         model = User
-        fields = ('email',) # 'username' se autocompleta con DNI
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        bootstrap_text_inputs = [
-            'dni', 'nombre_farmacia', 'cuit', 'matricula', 'telefono',
-            'email_contacto', 'calle', 'numero', 'ciudad', 'provincia',
-            'codigo_postal', 'email'
-        ]
-        for name in bootstrap_text_inputs:
-            if name in self.fields:
-                self.fields[name].widget.attrs.setdefault('class', 'form-control')
-        for name in ['password1', 'password2']:
-            if name in self.fields:
-                self.fields[name].widget.attrs.setdefault('class', 'form-control')
-        if 'password1' in self.fields:
-            self.fields['password1'].help_text = mark_safe(
-                '<ul>'
-                '<li>Tu contraseña no debe ser demasiado similar a tu información personal.</li>'
-                '<li>Tu contraseña debe contener al menos 8 caracteres.</li>'
-                '<li>Tu contraseña no puede ser una contraseña de uso común.</li>'
-                '<li>Tu contraseña no puede ser completamente numérica.</li>'
-                '</ul>'
-            )
+        fields = ('email',)
 
     @transaction.atomic
     def save(self, commit=True):
         user = super().save(commit=False)
-        user.username = self.cleaned_data['dni'] # Usamos DNI como username
+        user.username = self.cleaned_data['dni']
         if commit:
             user.save()
-            # Guardamos el modelo Direccion SIN entre_calles
-            direccion = Direccion.objects.create(
-                calle=self.cleaned_data.get('calle'),
-                numero=self.cleaned_data.get('numero'),
-                # ELIMINADO: entre_calles=self.cleaned_data.get('entre_calles'),
-                ciudad=self.cleaned_data.get('ciudad'),
-                provincia=self.cleaned_data.get('provincia'),
-                codigo_postal=self.cleaned_data.get('codigo_postal'),
-            )
-            # Creamos la Farmacia usando los nombres de campos del equipo
+            direccion = self.crear_direccion()
             Farmacia.objects.create(
                 user=user,
-                nombre=self.cleaned_data.get('nombre_farmacia'), # 'nombre' en el modelo
+                nombre=self.cleaned_data.get('nombre_farmacia'),
                 cuit=self.cleaned_data.get('cuit'),
                 matricula=self.cleaned_data.get('matricula'),
                 telefono=self.cleaned_data.get('telefono'),
                 email_contacto=self.cleaned_data.get('email_contacto'),
-                direccion=direccion, # Asignamos la Direccion
-                activa=False # Inicia inactiva
+                direccion=direccion,
+                activa=False,
             )
         return user
 
-class RepartidorSignUpForm(UserCreationForm):
+class RepartidorSignUpForm(BaseSignUpForm):
     dni = forms.CharField(max_length=8, required=True, label="DNI")
     first_name = forms.CharField(max_length=150, required=True, label="Nombre")
     last_name = forms.CharField(max_length=150, required=True, label="Apellido")
@@ -747,49 +720,25 @@ class RepartidorSignUpForm(UserCreationForm):
         label="Fecha de Nacimiento",
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
     )
-
-    # Tu lógica de vehículo
     tipo_vehiculo = forms.ChoiceField(choices=Repartidor.TIPO_VEHICULO, required=True, label="Tipo de Vehículo")
     patente = forms.CharField(max_length=10, required=False, label="Patente (si es Moto)")
     cedula_vehiculo = forms.ImageField(required=False, label="Foto de Cédula (si es Moto)")
-
-    # Adaptado a Direccion
     calle = forms.CharField(max_length=100, required=True)
     numero = forms.CharField(max_length=10, required=True)
-    # ELIMINADO: entre_calles = forms.CharField(max_length=255, required=False)
     ciudad = forms.CharField(max_length=50, required=True, initial="Buenos Aires")
     provincia = forms.CharField(max_length=50, required=True, initial="Buenos Aires")
     codigo_postal = forms.CharField(max_length=10, required=True)
 
+    texto_inputs_bootstrap = [
+        'dni', 'first_name', 'last_name', 'telefono', 'patente', 'email',
+        'calle', 'numero', 'ciudad', 'provincia', 'codigo_postal'
+    ]
+    selects_bootstrap = ['tipo_vehiculo']
+    archivos_bootstrap = ['cedula_vehiculo']
+
     class Meta(UserCreationForm.Meta):
         model = User
         fields = ('first_name', 'last_name', 'email')
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        bootstrap_text_inputs = [
-            'dni', 'first_name', 'last_name', 'telefono', 'patente', 'email',
-            'calle', 'numero', 'ciudad', 'provincia', 'codigo_postal'
-        ]
-        for name in bootstrap_text_inputs:
-            if name in self.fields:
-                self.fields[name].widget.attrs.setdefault('class', 'form-control')
-        if 'tipo_vehiculo' in self.fields:
-            self.fields['tipo_vehiculo'].widget.attrs.setdefault('class', 'form-select')
-        if 'cedula_vehiculo' in self.fields:
-            self.fields['cedula_vehiculo'].widget.attrs.setdefault('class', 'form-control')
-        for name in ['password1', 'password2']:
-            if name in self.fields:
-                self.fields[name].widget.attrs.setdefault('class', 'form-control')
-        if 'password1' in self.fields:
-            self.fields['password1'].help_text = mark_safe(
-                '<ul>'
-                '<li>Tu contraseña no debe ser demasiado similar a tu información personal.</li>'
-                '<li>Tu contraseña debe contener al menos 8 caracteres.</li>'
-                '<li>Tu contraseña no puede ser una contraseña de uso común.</li>'
-                '<li>Tu contraseña no puede ser completamente numérica.</li>'
-                '</ul>'
-            )
 
     def clean_dni(self):
         dni = self.cleaned_data.get('dni')
@@ -803,35 +752,22 @@ class RepartidorSignUpForm(UserCreationForm):
         cleaned_data = super().clean()
         tipo_vehiculo = cleaned_data.get('tipo_vehiculo')
         patente = cleaned_data.get('patente')
-        cedula = cleaned_data.get('cedula_vehiculo')
 
         if tipo_vehiculo == 'MOTO':
             if not patente:
                 self.add_error('patente', 'La patente es obligatoria si el vehículo es una motocicleta.')
-            # Permitimos que la cédula sea opcional, la validación ya está en el modelo
-            # if not cedula:
-            #     self.add_error('cedula_vehiculo', 'La foto de la cédula es obligatoria si el vehículo es una motocicleta.')
         elif tipo_vehiculo == 'BICI':
-                cleaned_data['patente'] = None
-                cleaned_data['cedula_vehiculo'] = None
+            cleaned_data['patente'] = None
+            cleaned_data['cedula_vehiculo'] = None
         return cleaned_data
 
     @transaction.atomic
     def save(self, commit=True):
         user = super().save(commit=False)
-        user.username = self.cleaned_data['dni'] # DNI como username
+        user.username = self.cleaned_data['dni']
         if commit:
             user.save()
-            # Guardamos el modelo Direccion SIN entre_calles
-            direccion = Direccion.objects.create(
-                calle=self.cleaned_data.get('calle'),
-                numero=self.cleaned_data.get('numero'),
-                # ELIMINADO: entre_calles=self.cleaned_data.get('entre_calles'),
-                ciudad=self.cleaned_data.get('ciudad'),
-                provincia=self.cleaned_data.get('provincia'),
-                codigo_postal=self.cleaned_data.get('codigo_postal'),
-            )
-            # Creamos el Repartidor
+            direccion = self.crear_direccion()
             Repartidor.objects.create(
                 user=user,
                 dni=self.cleaned_data.get('dni'),
@@ -841,6 +777,6 @@ class RepartidorSignUpForm(UserCreationForm):
                 tipo_vehiculo=self.cleaned_data.get('tipo_vehiculo'),
                 patente=self.cleaned_data.get('patente'),
                 cedula_vehiculo=self.cleaned_data.get('cedula_vehiculo'),
-                activo=False # Inicia inactivo
+                activo=False,
             )
         return user

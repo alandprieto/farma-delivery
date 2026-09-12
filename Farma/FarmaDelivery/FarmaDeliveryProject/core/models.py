@@ -53,8 +53,8 @@ class Direccion(models.Model):
 class ObraSocial(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
     plan = models.CharField(max_length=100)
-    numero_afiliado = models.CharField(max_length=50, blank=True, null=True) # <-- AÑADE ESTO
-    
+    numero_afiliado = models.CharField(max_length=50, blank=True, null=True)
+
     class Meta:
         verbose_name = 'Obra Social'
         verbose_name_plural = 'Obras Sociales'
@@ -152,17 +152,14 @@ class Repartidor(models.Model):
     telefono = models.CharField(max_length=20)
     fecha_nacimiento = models.DateField(null=True, blank=True)
     edad = models.PositiveIntegerField(null=True, blank=True, help_text="Edad del repartidor")
-    # ... dentro de class Repartidor(models.Model):
 
-    # Tus campos para el vehículo
     TIPO_VEHICULO = [
         ('BICI', 'Bicicleta'),
         ('MOTO', 'Motocicleta'),
     ]
 
     tipo_vehiculo = models.CharField(max_length=10, choices=TIPO_VEHICULO, default='BICI')
-    # El campo 'patente' ya existe en el modelo de los chicos, así que no lo repetimos.
-    cedula_vehiculo = models.ImageField(upload_to='cedulas/', blank=True, null=True) # Tu campo de cédula
+    cedula_vehiculo = models.ImageField(upload_to='cedulas/', blank=True, null=True)
     patente = models.CharField(max_length=10, blank=True)
     activo = models.BooleanField(default=True)
     zona_cobertura = models.CharField(max_length=100, blank=True)
@@ -274,9 +271,7 @@ class Producto(models.Model):
     nombre = models.CharField(max_length=200)
     descripcion = models.TextField(blank=True)
     
-    # --- ¡CAMBIO AÑADIDO AQUÍ! ---
     imagen = models.ImageField(upload_to='productos/', null=True, blank=True, verbose_name="Imagen del Producto")
-    # -----------------------------
     
     precio_base = models.DecimalField(max_digits=10, decimal_places=2)
     codigo_barras = models.CharField(max_length=50, unique=True, blank=True)

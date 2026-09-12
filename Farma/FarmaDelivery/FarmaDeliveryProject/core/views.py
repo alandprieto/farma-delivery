@@ -1,19 +1,18 @@
+import logging
+import uuid
+from datetime import datetime, timedelta
+
+import requests
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import logout
-from django.contrib.auth import login as auth_login
-from django.contrib.auth.views import LoginView
-from django.contrib.auth.models import User
 from django.contrib import messages
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
 from django.db import transaction
 from django.core.paginator import Paginator
-import uuid
-import os
-from datetime import datetime, timedelta
+from django.views.decorators.http import require_POST
 
 from .models import (
     Cliente, Farmacia, Repartidor, Producto, Pedido, 
@@ -26,6 +25,9 @@ from .forms import (
     DireccionForm, PerfilClienteForm, ContactoForm,
     ClienteSignUpForm, FarmaciaSignUpForm, RepartidorSignUpForm
 )
+from .utils import obtener_coordenadas
+
+logger = logging.getLogger(__name__)
 
 # Vista principal - página de inicio
 @login_required 
@@ -43,17 +45,13 @@ def home_page(request):
     # Intentar completar coordenadas faltantes de la dirección del cliente
     if direccion_cliente and (not direccion_cliente.latitud or not direccion_cliente.longitud):
         try:
-            import requests
-            direccion_completa = f"{direccion_cliente.calle} {direccion_cliente.numero}, {direccion_cliente.ciudad}, {direccion_cliente.provincia}, Argentina"
-            url = "https://nominatim.openstreetmap.org/search"
-            params = {'q': direccion_completa, 'format': 'json', 'limit': 1, 'countrycodes': 'ar'}
-            headers = {'User-Agent': 'FarmaDelivery/1.0'}
-            r = requests.get(url, params=params, headers=headers, timeout=6)
-            if r.status_code == 200 and r.json():
-                lat = float(r.json()[0]['lat'])
-                lon = float(r.json()[0]['lon'])
-                direccion_cliente.latitud = lat
-                direccion_cliente.longitud = lon
+            coords = obtener_coordenadas(
+                direccion_cliente.calle, direccion_cliente.numero,
+                direccion_cliente.ciudad, direccion_cliente.provincia, timeout=6,
+            )
+            if coords:
+                direccion_cliente.latitud = coords['latitud']
+                direccion_cliente.longitud = coords['longitud']
                 direccion_cliente.save()
         except Exception:
             pass
@@ -131,21 +129,17 @@ def buscar_productos(request):
     # Intentar completar coordenadas faltantes de la dirección del cliente
     if direccion_cliente and (not direccion_cliente.latitud or not direccion_cliente.longitud):
         try:
-            import requests
-            direccion_completa = f"{direccion_cliente.calle} {direccion_cliente.numero}, {direccion_cliente.ciudad}, {direccion_cliente.provincia}, Argentina"
-            url = "https://nominatim.openstreetmap.org/search"
-            params = {'q': direccion_completa, 'format': 'json', 'limit': 1, 'countrycodes': 'ar'}
-            headers = {'User-Agent': 'FarmaDelivery/1.0'}
-            r = requests.get(url, params=params, headers=headers, timeout=6)
-            if r.status_code == 200 and r.json():
-                lat = float(r.json()[0]['lat'])
-                lon = float(r.json()[0]['lon'])
-                direccion_cliente.latitud = lat
-                direccion_cliente.longitud = lon
+            coords = obtener_coordenadas(
+                direccion_cliente.calle, direccion_cliente.numero,
+                direccion_cliente.ciudad, direccion_cliente.provincia, timeout=6,
+            )
+            if coords:
+                direccion_cliente.latitud = coords['latitud']
+                direccion_cliente.longitud = coords['longitud']
                 direccion_cliente.save()
         except Exception:
             pass
-    
+
     # Filtrar productos por farmacias cercanas (2km) si el cliente tiene dirección
     productos_cercanos = []
     if direccion_cliente and direccion_cliente.latitud and direccion_cliente.longitud:
@@ -628,7 +622,6 @@ def aceptar_pedido(request, pedido_id):
     })
 
 # Vista para rechazar un pedido
-from django.views.decorators.http import require_POST
 @require_POST
 @login_required
 def rechazar_pedido(request, pedido_id):
@@ -643,54 +636,33 @@ def rechazar_pedido(request, pedido_id):
     return JsonResponse({'success': True, 'mensaje': 'Pedido rechazado'})
 
 # Vista para geocodificar direcciones
+@require_POST
 def geocodificar_direccion(request):
     """API endpoint para geocodificar una dirección"""
-    if request.method == 'POST':
-        try:
-            import requests
-            
-            calle = request.POST.get('calle')
-            numero = request.POST.get('numero')
-            ciudad = request.POST.get('ciudad')
-            provincia = request.POST.get('provincia')
-            
-            if not all([calle, numero, ciudad, provincia]):
-                return JsonResponse({'error': 'Faltan datos de la dirección'}, status=400)
-            
-            # Usar Nominatim (OpenStreetMap) para geocodificación gratuita
-            direccion_completa = f"{calle} {numero}, {ciudad}, {provincia}, Argentina"
-            url = f"https://nominatim.openstreetmap.org/search"
-            params = {
-                'q': direccion_completa,
-                'format': 'json',
-                'limit': 1,
-                'countrycodes': 'ar'
-            }
-            headers = {
-                'User-Agent': 'FarmaDelivery/1.0'
-            }
-            
-            response = requests.get(url, params=params, headers=headers, timeout=10)
-            
-            if response.status_code == 200:
-                data = response.json()
-                if data:
-                    lat = float(data[0]['lat'])
-                    lon = float(data[0]['lon'])
-                    return JsonResponse({
-                        'latitud': lat,
-                        'longitud': lon,
-                        'direccion_encontrada': data[0]['display_name']
-                    })
-                else:
-                    return JsonResponse({'error': 'Dirección no encontrada'}, status=404)
-            else:
-                return JsonResponse({'error': 'Error en el servicio de geocodificación'}, status=500)
-                
-        except Exception as e:
-            return JsonResponse({'error': f'Error interno: {str(e)}'}, status=500)
-    
-    return JsonResponse({'error': 'Método no permitido'}, status=405)
+    calle = request.POST.get('calle')
+    numero = request.POST.get('numero')
+    ciudad = request.POST.get('ciudad')
+    provincia = request.POST.get('provincia')
+
+    if not all([calle, numero, ciudad, provincia]):
+        return JsonResponse({'error': 'Faltan datos de la dirección'}, status=400)
+
+    try:
+        resultado = obtener_coordenadas(calle, numero, ciudad, provincia, timeout=10)
+    except requests.RequestException:
+        return JsonResponse({'error': 'Error en el servicio de geocodificación'}, status=500)
+    except Exception:
+        logger.exception('Error inesperado en geocodificar_direccion')
+        return JsonResponse({'error': 'Error interno del servidor'}, status=500)
+
+    if not resultado:
+        return JsonResponse({'error': 'Dirección no encontrada'}, status=404)
+
+    return JsonResponse({
+        'latitud': resultado['latitud'],
+        'longitud': resultado['longitud'],
+        'direccion_encontrada': resultado['direccion_encontrada'],
+    })
 
 # VISTAS PARA FARMACÉUTICOS
 
@@ -1069,7 +1041,7 @@ def enviar_email_confirmacion_pedido(pedido):
             fail_silently=False,
         )
     except Exception as e:
-        print(f"Error enviando email: {e}")
+        logger.exception('Error enviando email de confirmación de pedido %s: %s', pedido.numero_pedido, e)
 
 def enviar_email_cambio_estado(pedido, estado_anterior):
     """Envía email cuando cambia el estado del pedido"""
@@ -1101,7 +1073,7 @@ def enviar_email_cambio_estado(pedido, estado_anterior):
             fail_silently=False,
         )
     except Exception as e:
-        print(f"Error enviando email: {e}")
+        logger.exception('Error enviando email de cambio de estado del pedido %s: %s', pedido.numero_pedido, e)
 
 
 def select_signup(request):

@@ -7,8 +7,6 @@ let pedidoActivoActual = null;
 
 // Inicialización cuando el DOM está listo
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Inicializando panel del repartidor...');
-    
     // Inicializar componentes
     initTabs();
     initModal();
@@ -18,8 +16,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Cargar datos iniciales
     cargarPedidosDisponibles();
     cargarPedidosActivos();
-    
-    console.log('Panel del repartidor inicializado correctamente');
 });
 
 /* ===== FUNCIONALIDAD DE PESTAÑAS ===== */
@@ -53,8 +49,6 @@ function initTabs() {
 /* ===== CARGA DE PEDIDOS DISPONIBLES ===== */
 
 function cargarPedidosDisponibles() {
-    console.log('Cargando pedidos disponibles...');
-    
     // Cargar datos reales desde la API
     fetch('/api/pedidos-disponibles/', {
         method: 'GET',
@@ -66,7 +60,6 @@ function cargarPedidosDisponibles() {
     .then(data => {
         if (data.success) {
             pedidosDisponibles = data.pedidos;
-            console.log('Pedidos cargados:', pedidosDisponibles);
             
             // Ordenar por ganancia (mayor a menor)
             pedidosDisponibles.sort((a, b) => b.ganancia - a.ganancia);
@@ -144,7 +137,6 @@ function renderPedidosDisponibles() {
 /* ===== CARGA DE PEDIDOS ACTIVOS ===== */
 
 function cargarPedidosActivos() {
-    console.log('Cargando pedidos activos...');
     // Cargar pedidos activos reales (si existe un endpoint: ajustar URL si es necesario)
     fetch('/api/pedidos-activos/', {
         method: 'GET',
@@ -529,8 +521,6 @@ function guardarInformacionPersonal() {
     const telefono = document.getElementById('telefono').value;
     
     // Simular guardado
-    console.log('Guardando información personal:', { nombre, email, telefono });
-    
     showToast('success', 'Información Guardada', 'Tu información personal ha sido actualizada');
 }
 
@@ -540,8 +530,6 @@ function guardarInformacionVehiculo() {
     const zonaCobertura = document.getElementById('zona_cobertura').value;
     
     // Simular guardado
-    console.log('Guardando información del vehículo:', { vehiculo, patente, zonaCobertura });
-    
     showToast('success', 'Información Guardada', 'La información de tu vehículo ha sido actualizada');
 }
 

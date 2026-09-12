@@ -3,3 +3,15 @@ __pycache__/
 *.pyc
 db.sqlite3
 .DS_Store
+
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Datos estáticos generados y subidas de usuarios
+staticfiles/
+media/
+
+# Datos binarios / empaquetados
+*.zip

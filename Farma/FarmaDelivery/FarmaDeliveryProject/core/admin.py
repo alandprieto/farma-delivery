@@ -1,17 +1,12 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
-from django.utils.html import format_html  # <-- ¡IMPORTACIÓN AÑADIDA!
+from django.utils.html import format_html
 from .models import (
     Direccion, ObraSocial, Cliente, Farmacia, Repartidor, 
     Producto, DescuentoObraSocial, ListaProductos, 
     Pedido, DetallePedido, Rol, EstadoPedido, MetodoPago
 )
-
-# Configuración inline para mostrar direcciones en otros modelos
-class DireccionInline(admin.StackedInline):
-    model = Direccion
-    extra = 0
 
 # Configuración del admin para Direccion
 @admin.register(Direccion)
@@ -117,21 +112,16 @@ class DescuentoObraSocialInline(admin.TabularInline):
     model = DescuentoObraSocial
     extra = 0
 
-# --- ¡SECCIÓN MODIFICADA! ---
 # Configuración del admin para Producto
 @admin.register(Producto)
 class ProductoAdmin(admin.ModelAdmin):
-    # 1. Añadimos 'get_thumbnail' para ver la imagen en la lista
     list_display = ['nombre', 'get_thumbnail', 'precio_base', 'stock_disponible', 'farmacia', 'categoria', 'activo']
     list_filter = ['activo', 'categoria', 'laboratorio', 'requiere_receta', 'farmacia']
     search_fields = ['nombre', 'descripcion', 'codigo_barras', 'categoria']
     ordering = ['nombre']
     inlines = [DescuentoObraSocialInline]
-    
-    # 2. Añadimos un campo de solo lectura para la previsualización
     readonly_fields = ('get_thumbnail_display',)
 
-    # 3. Funciones para mostrar la imagen
     def get_thumbnail(self, obj):
         if obj.imagen:
             return format_html('<img src="{}" width="50" style="object-fit: cover; border-radius: 5px;" />', obj.imagen.url)
@@ -144,7 +134,6 @@ class ProductoAdmin(admin.ModelAdmin):
         return "Sin imagen"
     get_thumbnail_display.short_description = 'Previsualización'
 
-    # 4. Organizamos los campos en el formulario de edición
     fieldsets = (
         (None, {
             'fields': ('nombre', 'activo', 'farmacia', 'categoria', 'laboratorio')
@@ -153,7 +142,6 @@ class ProductoAdmin(admin.ModelAdmin):
             'fields': ('descripcion', 'precio_base', 'stock_disponible', 'requiere_receta')
         }),
         ('Imagen', {
-            # 'imagen' es para subirla, 'get_thumbnail_display' es para verla
             'fields': ('imagen', 'get_thumbnail_display')
         }),
         ('Datos Adicionales', {

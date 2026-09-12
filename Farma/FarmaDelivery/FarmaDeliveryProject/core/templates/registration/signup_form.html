@@ -396,17 +396,6 @@
                 </div>
                 {% endif %}
             </div>
-            {% if form.entre_calles %}
-            <div class="row g-3 mb-3">
-                <div class="col-12">
-                    <div class="form-group text-start">
-                        <label for="{{ form.entre_calles.id_for_label }}">Entre calles (Opcional)</label>
-                        {{ form.entre_calles }}
-                         {% if form.entre_calles.errors %}<div class="errorlist">{{ form.entre_calles.errors }}</div>{% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endif %}
             <div class="row g-3 mb-3">
                  {% if form.ciudad %}
                 <div class="col-md-4">
